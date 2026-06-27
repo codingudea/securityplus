@@ -52,6 +52,16 @@ const Index = () => {
       {/* Hero */}
       <section className="relative overflow-hidden bg-primary text-primary-foreground">
         <div className="absolute inset-0 bg-[linear-gradient(135deg,#0A0F2B_0%,#072177_50%,#0A0F2B_100%)]" />
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-20"
+        >
+          <source src="/portada_security.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0A0F2B] via-transparent to-[#0A0F2B]/60" />
         <div className="relative container mx-auto px-4 py-24 md:py-32 text-center">
           <div className="animate-slide-up max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm mb-8">
