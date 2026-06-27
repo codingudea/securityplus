@@ -1,10 +1,5 @@
-const API_URL = "https://api.x.ai/v1/chat/completions";
-const MODEL = "grok-2-latest";
-
-interface Message {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
+const API_URL = "https://api.x.ai/v1/responses";
+const MODEL = "grok-4.3";
 
 interface ChatResponse {
   success: boolean;
@@ -203,11 +198,6 @@ export async function sendMessage(userMessage: string): Promise<ChatResponse> {
     };
   }
 
-  const messages: Message[] = [
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: userMessage },
-  ];
-
   try {
     const response = await fetch(API_URL, {
       method: "POST",
@@ -217,31 +207,44 @@ export async function sendMessage(userMessage: string): Promise<ChatResponse> {
       },
       body: JSON.stringify({
         model: MODEL,
-        messages,
-        max_tokens: 1024,
-        temperature: 0.5,
+        input: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userMessage },
+        ],
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.text();
+      const errorData = await response.json();
+      const code = errorData?.code || "";
+      const msg = errorData?.error || await response.text();
+
+      if (code === "permission-denied") {
+        return {
+          success: false,
+          error:
+            "La cuenta de xAI no tiene créditos disponibles. Ingresa a https://console.x.ai/team/402f0578-2d4c-452e-8b0d-dd2b17aa7e5e para adquirir créditos.",
+        };
+      }
+
       return {
         success: false,
-        error: `Error de API (${response.status}): ${errorData}`,
+        error: `Error de API (${response.status}): ${msg}`,
       };
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
 
-    if (!content) {
+    const outputText = data?.output?.[0]?.content?.[0]?.text || data?.output?.[0]?.content?.text;
+
+    if (!outputText) {
       return {
         success: false,
         error: "Respuesta vacía del asistente",
       };
     }
 
-    return { success: true, content };
+    return { success: true, content: outputText };
   } catch (err) {
     return {
       success: false,
