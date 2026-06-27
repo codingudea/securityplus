@@ -404,6 +404,139 @@ const Diagnostico = () => {
     setShowResult(true);
   };
 
+  const handleDownload = () => {
+    const total = resultadoTotal;
+    const status = total >= 80 ? "Óptimo" : total >= 60 ? "Aceptable" : total >= 40 ? "Moderado" : "Crítico";
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const respuestaLabel: Record<string, string> = {
+      si: "Sí",
+      parcialmente: "Parcialmente",
+      no: "No",
+      no_se: "No sé",
+    };
+
+    const allPreguntas = preguntas;
+    const respuestasConTexto = respuestas
+      .map((r) => {
+        const p = allPreguntas.find((q) => q.id === r.preguntaId);
+        const num = allPreguntas.findIndex((q) => q.id === r.preguntaId) + 1;
+        return p ? { num, texto: p.texto, peso: p.peso, valor: respuestaLabel[r.valor] || r.valor } : null;
+      })
+      .filter(Boolean);
+
+    const accionesHtml = analisisIA?.planDeAccion?.length
+      ? analisisIA.planDeAccion
+          .map(
+            (a) => `
+          <tr>
+            <td style="padding:8px;border:1px solid #ddd;font-weight:bold">${a.accion}</td>
+            <td style="padding:8px;border:1px solid #ddd">${a.objetivo}</td>
+            <td style="padding:8px;border:1px solid #ddd">${a.beneficio}</td>
+            <td style="padding:8px;border:1px solid #ddd">${a.area}</td>
+            <td style="padding:8px;border:1px solid #ddd;text-transform:capitalize">${a.prioridad}</td>
+          </tr>`
+          )
+          .join("")
+      : "";
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"><title>Diagnóstico Ley 1581 - ${empresa}</title>
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; color: #333; padding: 40px; line-height: 1.6; }
+        h1 { color: #1a237e; font-size: 24px; border-bottom: 2px solid #1a237e; padding-bottom: 8px; }
+        h2 { color: #283593; font-size: 18px; margin-top: 24px; }
+        h3 { color: #3949ab; font-size: 15px; margin-top: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { border: none; margin-bottom: 4px; }
+        .header p { color: #666; font-size: 14px; }
+        .score-box { text-align: center; padding: 20px; background: #e8eaf6; border-radius: 8px; margin: 20px 0; }
+        .score-box .total { font-size: 48px; font-weight: bold; color: #1a237e; }
+        .score-box .label { font-size: 14px; color: #666; }
+        .block-grid { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+        .block-card { flex: 1; min-width: 180px; padding: 16px; border: 1px solid #ddd; border-radius: 8px; text-align: center; }
+        .block-card .name { font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+        .block-card .pct { font-size: 24px; font-weight: bold; color: #1a237e; }
+        .block-card .weight { font-size: 11px; color: #999; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+        th { background: #e8eaf6; padding: 10px 8px; text-align: left; border: 1px solid #c5cae9; font-weight: 600; }
+        td { padding: 8px; border: 1px solid #ddd; }
+        .interpretation { padding: 16px; background: #f5f5f5; border-radius: 8px; white-space: pre-line; font-size: 13px; line-height: 1.7; }
+        .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #999; border-top: 1px solid #ddd; padding-top: 16px; }
+        @media print { body { padding: 20px; } }
+      </style>
+      </head><body>
+        <div class="header">
+          <h1>Diagnóstico de Cumplimiento - Ley 1581 de 2012</h1>
+          <p><strong>Empresa:</strong> ${empresa} | <strong>Fecha:</strong> ${new Date().toLocaleDateString("es-CO")}</p>
+        </div>
+
+        <div class="score-box">
+          <div class="total">${total}%</div>
+          <div class="label">${status}</div>
+        </div>
+
+        <h2>Resultados por bloque</h2>
+        <div class="block-grid">
+          ${resultadosBloque
+            .map(
+              (b) => `
+            <div class="block-card">
+              <div class="name">${b.titulo}</div>
+              <div class="pct">${b.porcentaje}%</div>
+              <div class="weight">Peso: ${b.pesoMaximo}% | Aporta: ${b.contribucion}%</div>
+            </div>`
+            )
+            .join("")}
+        </div>
+
+        <h2>Respuestas del cuestionario</h2>
+        <table>
+          <thead><tr><th>#</th><th>Pregunta</th><th>Peso</th><th>Respuesta</th></tr></thead>
+          <tbody>
+            ${respuestasConTexto
+              .map(
+                (r) =>
+                  `<tr><td>${r!.num}</td><td>${r!.texto}</td><td>${r!.peso}%</td><td>${r!.valor}</td></tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>
+
+        ${
+          analisisIA?.interpretacion
+            ? `
+          <h2>Interpretación del nivel de cumplimiento</h2>
+          <div class="interpretation">${analisisIA.interpretacion}</div>`
+            : ""
+        }
+
+        ${
+          accionesHtml
+            ? `
+          <h2>Plan de acción recomendado</h2>
+          <table>
+            <thead><tr><th>Acción</th><th>Objetivo</th><th>Beneficio</th><th>Área</th><th>Prioridad</th></tr></thead>
+            <tbody>${accionesHtml}</tbody>
+          </table>`
+            : ""
+        }
+
+        <div class="footer">
+          Documento generado el ${new Date().toLocaleString("es-CO")} a través del Sistema de Diagnóstico Ley 1581.
+        </div>
+      </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
+  };
+
   const handleNuevoDiagnostico = () => {
     setRespuestas([]);
     setCurrentBlock(0);
@@ -700,6 +833,12 @@ const Diagnostico = () => {
               <RotateCcw className="h-4 w-4" />
               Nuevo diagnóstico
             </Button>
+            {!analizando && analisisIA && (
+              <Button onClick={handleDownload} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                <Download className="h-4 w-4" />
+                Descargar diagnóstico
+              </Button>
+            )}
           </div>
         </div>
       </div>
