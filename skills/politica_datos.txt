@@ -1,0 +1,27 @@
+POLÍTICA DE TRATAMIENTO DE DATOS PERSONALES — CODINGPLUS AI
+Última actualización y vigencia: 26 de Junio de 2026
+
+En cumplimiento de la Ley 1581 de 2012, el Decreto Reglamentario 1377 de 2013 y demás normas concordantes, CODINGPLUS AI, en su calidad de Responsable del Tratamiento, informa a sus usuarios, clientes y titulares de datos los términos y condiciones del tratamiento de la información personal suministrada en nuestras plataformas.
+
+1. PRINCIPIOS RECTORES: Aplicamos de forma estricta los principios de legalidad, finalidad, variedad, libertad, veracidad, transparencia, acceso y circulación restringida, seguridad y confidencialidad exigidos por el marco normativo colombiano.
+
+2. CATEGORÍAS DE DATOS Y CLASIFICACIÓN INTELIGENTE: Nuestro sistema utiliza un motor algorítmico automatizado para segregar y clasificar los datos recopilados en cuatro categorías críticas, aplicando controles diferenciales de seguridad:
+   a) Datos Públicos: Información comercial general, cargos públicos o registros corporativos no protegidos por reserva legal.
+   b) Datos Semiprivados: Nombres, apellidos, profesión y datos de ubicación general cuya consulta no afecta la intimidad profunda del titular.
+   c) Datos Privados: Correos electrónicos, números de teléfono, direcciones residenciales y credenciales de autenticación. Requieren autorización expresa del titular para su uso operativo.
+   d) Datos Sensibles: Números de identificación nacional, registros financieros, datos de salud o información biométrica. CODINGPLUS AI cifra estas categorías en su totalidad y de forma inmediata en la capa de persistencia; su autorización de captura es completamente facultativa por parte del usuario.
+
+3. FINALIDAD DEL TRATAMIENTO: Los datos personales capturados serán tratados exclusivamente para las siguientes finalidades explícitas aceptadas por el titular:
+   - Proveer y optimizar los servicios analíticos y de desarrollo de software solicitados dentro de la plataforma.
+   - Procesar solicitudes de soporte técnico y gestionar la relación comercial y contractual con clientes corporativos.
+   - Ejecutar procesos internos automatizados de auditoría de seguridad y análisis estadísticos de comportamiento del sistema.
+   - Enviar comunicaciones informativas relevantes y alertas automatizadas sobre vulnerabilidades de seguridad identificadas.
+
+4. DERECHOS DE LOS TITULARES (DERECHOS ARCO): De acuerdo con el Artículo 8 de la Ley 1581 de 2012, usted, como titular de los datos, cuenta con los derechos irrenunciables de:
+   - Conocer, actualizar y rectificar de forma gratuita sus datos personales frente a los Responsables del Tratamiento.
+   - Solicitar prueba de la autorización otorgada para el tratamiento de sus datos, salvo en las excepciones legales vigentes.
+   - Ser informado, previa solicitud, respecto al uso operativo que se les ha dado a sus datos personales.
+   - Presentar ante la Superintendencia de Industria y Comercio (SIC) quejas por infracciones a lo dispuesto en la ley.
+   - Revocar la autorización otorgada o solicitar la supresión definitiva del dato cuando en el tratamiento no se respeten los principios, derechos y garantías constitucionales y legales.
+
+5. MECANISMO DE ATENCIÓN DE SOLICITUDES ARCO: Para ejercer cualquiera de sus derechos de Acceso, Rectificación, Cancelación u Oposición, el titular puede radicar una solicitud formal a través del módulo interactivo de nuestra plataforma web o mediante correo electrónico. En cumplimiento del Artículo 14 de la Ley 1581, toda solicitud será atendida y resuelta en un término máximo de diez (10) días hábiles contados a partir de la fecha de su recibo oficial.
