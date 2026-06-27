@@ -21,6 +21,7 @@ import {
   saveRespuestasTemp,
   loadRespuestasTemp,
   clearRespuestasTemp,
+  getDiagnosticos,
 } from "@/lib/db";
 import {
   RESPUESTA_VALORES,
@@ -29,7 +30,10 @@ import {
   type Respuesta,
   type Pregunta,
   type ResultadoBloque,
+  type AnalisisIA,
+  type Accion,
 } from "@/types";
+import { analizarDiagnostico, MODEL, type DatosAnalisis } from "@/lib/chat";
 import {
   ArrowLeft,
   ArrowRight,
@@ -44,6 +48,12 @@ import {
   Shield,
   Lock,
   FileText,
+  BarChart,
+  ListChecks,
+  Loader2,
+  RefreshCw,
+  AlertTriangle,
+  Download,
 } from "lucide-react";
 
 function Gauge({ value, size = 140, strokeWidth = 10 }: { value: number; size?: number; strokeWidth?: number }) {
@@ -130,6 +140,10 @@ const Diagnostico = () => {
   const [resultadosBloque, setResultadosBloque] = useState<ResultadoBloque[]>([]);
   const [resultadoTotal, setResultadoTotal] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [analizando, setAnalizando] = useState(false);
+  const [analisisIA, setAnalisisIA] = useState<AnalisisIA | null>(null);
+  const [errorAnalisis, setErrorAnalisis] = useState<string | null>(null);
+  const [diagnosticoGuardado, setDiagnosticoGuardado] = useState<any>(null);
 
   useEffect(() => {
     const saved = loadRespuestasTemp();
@@ -297,6 +311,64 @@ const Diagnostico = () => {
     setShowForm(true);
   };
 
+  const ejecutarAnalisisIA = useCallback(
+    async (diag: any, resultadosBloque: ResultadoBloque[], respuestasActuales: Respuesta[]) => {
+      setAnalizando(true);
+      setErrorAnalisis(null);
+
+      const datosAnalisis: DatosAnalisis = {
+        empresa: diag.empresa,
+        fecha: diag.fecha,
+        resultadoTotal: diag.puntaje,
+        resultadosBloque: resultadosBloque.map((r) => ({
+          titulo: r.titulo,
+          porcentaje: r.porcentaje,
+          pesoMaximo: r.pesoMaximo,
+        })),
+        respuestas: respuestasActuales.map((r) => {
+          const p = preguntas.find((q) => q.id === r.preguntaId);
+          return {
+            numero: (preguntas.findIndex((q) => q.id === r.preguntaId) + 1),
+            texto: p?.texto || "",
+            peso: p?.peso || 0,
+            valor: r.valor,
+            valorNumerico: RESPUESTA_VALORES[r.valor],
+          };
+        }),
+      };
+
+      const result = await analizarDiagnostico(datosAnalisis);
+
+      if (result.success && result.content) {
+        try {
+          const parsed: AnalisisIA = JSON.parse(result.content);
+          if (parsed.interpretacion && parsed.planDeAccion) {
+            parsed.fechaGeneracion = new Date().toISOString();
+            parsed.modelo = MODEL;
+            setAnalisisIA(parsed);
+
+            const updatedDiag = { ...diag, analisisIA: parsed };
+            const allDiagnosticos = getDiagnosticos().map((d) =>
+              d.id === diag.id ? updatedDiag : d
+            );
+            localStorage.setItem("ley1581_diagnosticos", JSON.stringify(allDiagnosticos));
+
+            setDiagnosticoGuardado(updatedDiag);
+          } else {
+            setErrorAnalisis("La respuesta de la IA no tiene el formato esperado.");
+          }
+        } catch {
+          setErrorAnalisis("No se pudo interpretar la respuesta de la IA.");
+        }
+      } else {
+        setErrorAnalisis(result.error || "Error al conectar con la IA.");
+      }
+
+      setAnalizando(false);
+    },
+    [preguntas]
+  );
+
   const handleGuardarDiagnostico = () => {
     if (!empresa.trim()) {
       showToast("Ingresa el nombre de la empresa", "error");
@@ -308,25 +380,28 @@ const Diagnostico = () => {
     const resultados = calcularTodosBloques();
     const total = resultados.reduce((sum, b) => sum + b.contribucion, 0);
 
-    const diagnostico = {
+    const diag = {
       id: `d-${Date.now()}`,
       userId: session?.userId || "anon",
       empresa: empresa.trim(),
       email: "",
       ciudad: "",
       fecha: new Date().toISOString().split("T")[0],
-      respuestas,
+      respuestas: [...respuestas],
       puntaje: total,
       resultadosBloque: resultados,
     };
 
-    saveDiagnostico(diagnostico);
+    saveDiagnostico(diag);
     clearRespuestasTemp();
     setResultadosBloque(resultados);
     setResultadoTotal(total);
+    setDiagnosticoGuardado(diag);
     setShowForm(false);
-    setShowResult(true);
     setIsSubmitting(false);
+
+    ejecutarAnalisisIA(diag, resultados, respuestas);
+    setShowResult(true);
   };
 
   const handleNuevoDiagnostico = () => {
@@ -473,6 +548,14 @@ const Diagnostico = () => {
       <Lock className="h-5 w-5 text-purple-600" />,
     ];
 
+    const prioridadColor = (p: string) => {
+      switch (p) {
+        case "alta": return { border: "border-red-300", bg: "bg-red-50", badge: "bg-red-100 text-red-700" };
+        case "media": return { border: "border-yellow-300", bg: "bg-yellow-50", badge: "bg-yellow-100 text-yellow-700" };
+        default: return { border: "border-green-300", bg: "bg-green-50", badge: "bg-green-100 text-green-700" };
+      }
+    };
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 to-primary/10 py-8 px-4">
         <div className="max-w-3xl mx-auto">
@@ -486,6 +569,7 @@ const Diagnostico = () => {
             </div>
           </div>
 
+          {/* Scores */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <Card className="border shadow-lg col-span-1 lg:col-span-2">
               <CardContent className="flex flex-col items-center py-8">
@@ -501,6 +585,113 @@ const Diagnostico = () => {
             ))}
           </div>
 
+          {/* AI Analysis Loading */}
+          {analizando && (
+            <Card className="border shadow-lg mb-8">
+              <CardContent className="flex flex-col items-center py-12">
+                <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                <p className="text-lg font-medium text-primary">Analizando los resultados del diagnóstico...</p>
+                <p className="text-sm text-muted-foreground mt-1">Generando interpretación y plan de acción personalizado</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* AI Analysis Error with Retry */}
+          {!analizando && errorAnalisis && (
+            <Card className="border border-red-200 shadow-sm mb-8 bg-red-50">
+              <CardContent className="flex flex-col items-center py-8">
+                <AlertTriangle className="h-10 w-10 text-red-400 mb-3" />
+                <p className="text-sm text-red-700 text-center mb-4">{errorAnalisis}</p>
+                <p className="text-xs text-red-500 mb-4">
+                  No fue posible generar la interpretación automática en este momento. El diagnóstico numérico se ha guardado correctamente.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => diagnosticoGuardado && ejecutarAnalisisIA(diagnosticoGuardado, resultadosBloque, respuestas)}
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Reintentar análisis
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Interpretation */}
+          {!analizando && analisisIA && (
+            <Card className="border shadow-lg mb-8">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <BarChart className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <CardTitle className="text-lg">Interpretación del nivel de cumplimiento</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-line">
+                  {analisisIA.interpretacion}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Action Plan */}
+          {!analizando && analisisIA && analisisIA.planDeAccion.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <ListChecks className="h-5 w-5 text-green-600" />
+                </div>
+                <h2 className="text-lg font-bold text-primary">Plan de acción recomendado</h2>
+              </div>
+
+              {(["alta", "media", "baja"] as const).map((prioridad) => {
+                const acciones = analisisIA.planDeAccion.filter((a) => a.prioridad === prioridad);
+                if (acciones.length === 0) return null;
+                const labelMap = { alta: "Alta prioridad", media: "Prioridad media", baja: "Baja prioridad" };
+                const colorMap = {
+                  alta: { text: "text-red-700", bg: "bg-red-50", dot: "bg-red-500" },
+                  media: { text: "text-yellow-700", bg: "bg-yellow-50", dot: "bg-yellow-500" },
+                  baja: { text: "text-green-700", bg: "bg-green-50", dot: "bg-green-500" },
+                };
+                const c = colorMap[prioridad];
+
+                return (
+                  <div key={prioridad} className="mb-6">
+                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${c.bg} ${c.text} mb-3`}>
+                      <span className={`w-2 h-2 rounded-full ${c.dot}`} />
+                      {labelMap[prioridad]}
+                    </div>
+                    <div className="space-y-3">
+                      {acciones.map((acc, i) => {
+                        const pc = prioridadColor(acc.prioridad);
+                        return (
+                          <Card key={i} className={`border ${pc.border} ${pc.bg}`}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between mb-2">
+                                <h3 className="font-semibold text-sm">{acc.accion}</h3>
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${pc.badge}`}>
+                                  {acc.prioridad === "alta" ? "Crítica" : acc.prioridad === "media" ? "Importante" : "Buenas prácticas"}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-600 mb-2">{acc.objetivo}</p>
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>Beneficio: {acc.beneficio}</span>
+                                <span>Área: {acc.area}</span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button variant="outline" onClick={() => navigate("/")} className="gap-2">
               Volver al inicio

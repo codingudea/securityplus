@@ -46,6 +46,21 @@ export interface ResultadoBloque {
   contribucion: number;
 }
 
+export interface Accion {
+  accion: string;
+  objetivo: string;
+  beneficio: string;
+  area: string;
+  prioridad: "alta" | "media" | "baja";
+}
+
+export interface AnalisisIA {
+  interpretacion: string;
+  planDeAccion: Accion[];
+  fechaGeneracion: string;
+  modelo: string;
+}
+
 export interface Diagnostico {
   id: string;
   userId: string;
@@ -56,6 +71,7 @@ export interface Diagnostico {
   respuestas: Respuesta[];
   puntaje: number;
   resultadosBloque?: ResultadoBloque[];
+  analisisIA?: AnalisisIA;
 }
 
 export const RESPUESTA_VALORES: Record<RespuestaValor, number> = {
