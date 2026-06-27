@@ -1,5 +1,5 @@
-const API_URL = "https://api.x.ai/v1/responses";
-const MODEL = "grok-4.3";
+const API_URL = "https://api.openai.com/v1/responses";
+const MODEL = "gpt-5.4-mini";
 
 interface ChatResponse {
   success: boolean;
@@ -181,9 +181,9 @@ Revise si dispone de un documento formal de política de tratamiento de datos y 
 La prioridad del asistente siempre será ayudar al usuario a comprender la pregunta y responder con criterio, nunca responder por él.`;
 
 function getApiKey(): string {
-  const fromEnv = import.meta.env.VITE_XAI_API_KEY;
+  const fromEnv = import.meta.env.VITE_OPENAI_API_KEY;
   if (fromEnv) return fromEnv;
-  const fromWindow = (window as any).__XAI_API_KEY;
+  const fromWindow = (window as any).__OPENAI_API_KEY;
   if (fromWindow) return fromWindow;
   return "";
 }
@@ -194,7 +194,7 @@ export async function sendMessage(userMessage: string): Promise<ChatResponse> {
   if (!apiKey) {
     return {
       success: false,
-      error: "API key no configurada. Agrega VITE_XAI_API_KEY en el archivo .env",
+      error: "API key no configurada. Agrega VITE_OPENAI_API_KEY en el archivo .env",
     };
   }
 
@@ -215,21 +215,20 @@ export async function sendMessage(userMessage: string): Promise<ChatResponse> {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      const code = errorData?.code || "";
-      const msg = errorData?.error || await response.text();
+      const err = await response.json().catch(() => null);
+      const errCode = err?.error?.code || err?.code || "";
+      const errMsg = err?.error?.message || err?.error || (typeof err === "string" ? err : await response.text());
 
-      if (code === "permission-denied") {
+      if (errCode === "permission-denied" || errCode === "insufficient_quota") {
         return {
           success: false,
-          error:
-            "La cuenta de xAI no tiene créditos disponibles. Ingresa a https://console.x.ai/team/402f0578-2d4c-452e-8b0d-dd2b17aa7e5e para adquirir créditos.",
+          error: "La cuenta de OpenAI no tiene créditos disponibles o ha excedido la cuota.",
         };
       }
 
       return {
         success: false,
-        error: `Error de API (${response.status}): ${msg}`,
+        error: `Error de API (${response.status}): ${errMsg}`,
       };
     }
 
