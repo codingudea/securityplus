@@ -34,6 +34,7 @@ import {
   type Accion,
 } from "@/types";
 import { analizarDiagnostico, MODEL, type DatosAnalisis } from "@/lib/chat";
+import ChatWidget from "@/components/chat/ChatWidget";
 import {
   ArrowLeft,
   ArrowRight,
@@ -54,6 +55,7 @@ import {
   RefreshCw,
   AlertTriangle,
   Download,
+  MessageCircle,
 } from "lucide-react";
 
 function Gauge({ value, size = 140, strokeWidth = 10 }: { value: number; size?: number; strokeWidth?: number }) {
@@ -140,6 +142,9 @@ const Diagnostico = () => {
   const [resultadosBloque, setResultadosBloque] = useState<ResultadoBloque[]>([]);
   const [resultadoTotal, setResultadoTotal] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showWelcomeChat, setShowWelcomeChat] = useState(() => {
+    return !sessionStorage.getItem("diag_welcome_shown");
+  });
   const [analizando, setAnalizando] = useState(false);
   const [analisisIA, setAnalisisIA] = useState<AnalisisIA | null>(null);
   const [errorAnalisis, setErrorAnalisis] = useState<string | null>(null);
@@ -989,6 +994,45 @@ const Diagnostico = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Welcome Chat Modal */}
+      <Dialog open={showWelcomeChat} onOpenChange={(v) => {
+        setShowWelcomeChat(v);
+        if (!v) sessionStorage.setItem("diag_welcome_shown", "1");
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <MessageCircle className="h-5 w-5 text-blue-600" />
+              ¿Necesitas ayuda?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Si tienes dudas sobre alguna pregunta del cuestionario, puedes usar el chat de ayuda
+              haciendo clic en el botón{" "}
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-medium">
+                <MessageCircle className="h-3 w-3" />
+                Asistente
+              </span>{" "}
+              en la esquina inferior derecha de la pantalla.
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              El asistente te explicará cada pregunta en lenguaje sencillo, te dará ejemplos prácticos
+              y te orientará sobre cómo responder.
+            </p>
+            <Button onClick={() => {
+              setShowWelcomeChat(false);
+              sessionStorage.setItem("diag_welcome_shown", "1");
+            }} className="w-full">
+              ¡Entendido, comencemos!
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Chat Widget */}
+      <ChatWidget />
     </div>
   );
 };
